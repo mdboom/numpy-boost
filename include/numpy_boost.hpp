@@ -94,7 +94,7 @@ namespace detail {
   const int numpy_type_map<boost::int64_t>::typenum = NPY_INT64;
 
   template<>
-  const int numpy_type_map<boost::uint64_t>::typenum = NPY_INT64;
+  const int numpy_type_map<boost::uint64_t>::typenum = NPY_UINT64;
 }
 
 class numpy_boost_exception : public std::exception {
@@ -165,7 +165,7 @@ public:
     super(NULL, std::vector<boost::uint32_t>(NDims, 0)),
     array(NULL)
   {
-    npy_int shape[NDims];
+    npy_intp shape[NDims];
     PyArrayObject* a;
 
     boost::detail::multi_array::copy_n(extents, NDims, shape);
@@ -184,8 +184,8 @@ public:
   }
 
   void operator=(const self_type &other) {
-    Py_DECREF(array);
     Py_INCREF(other.array);
+    Py_DECREF(array);
     init_from_array(other.array);
   }
 
