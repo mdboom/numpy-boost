@@ -230,7 +230,7 @@ public:
   /* Destructor */
   ~numpy_boost() {
     /* Dereference the numpy array. */
-    Py_DECREF(array);
+    Py_XDECREF(array);
   }
 
   /* Assignment operator */
