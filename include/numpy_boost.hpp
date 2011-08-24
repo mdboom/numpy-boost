@@ -183,7 +183,7 @@ private:
 
 public:
   /* Construct from an existing Numpy array */
-  numpy_boost(PyObject* obj) :
+  numpy_boost(PyObject* obj) throw (python_exception) :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
@@ -199,7 +199,7 @@ public:
   }
 
   /* Copy constructor */
-  numpy_boost(const self_type &other) :
+  numpy_boost(const self_type &other) throw() :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
@@ -209,7 +209,7 @@ public:
 
   /* Construct a new array based on the given dimensions */
   template<class ExtentsList>
-  explicit numpy_boost(const ExtentsList& extents) :
+  explicit numpy_boost(const ExtentsList& extents) throw (python_exception) :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
@@ -234,7 +234,7 @@ public:
   }
 
   /* Assignment operator */
-  void operator=(const self_type &other) {
+  void operator=(const self_type &other) throw() {
     Py_INCREF(other.array);
     Py_DECREF(array);
     init_from_array(other.array);
@@ -243,7 +243,7 @@ public:
   /* Return the underlying Numpy array object.  [Borrowed
      reference] */
   PyObject*
-  py_ptr() {
+  py_ptr() throw() {
     return (PyObject*)array;
   }
 };
