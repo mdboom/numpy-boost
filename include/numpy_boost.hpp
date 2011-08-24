@@ -33,10 +33,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*
-  Documentation to come
-*/
-
 #ifndef __NUMPY_BOOST_HPP__
 #define __NUMPY_BOOST_HPP__
 
@@ -47,6 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <algorithm>
 
+/* numpy_type_map<T>
+
+   Provides a mapping from C++ datatypes to Numpy type
+   numbers. */
 namespace detail {
   template<class T>
   class numpy_type_map {
@@ -97,10 +97,24 @@ namespace detail {
   const int numpy_type_map<boost::uint64_t>::typenum = NPY_UINT64;
 }
 
-class numpy_boost_exception : public std::exception {
+class python_exception : public std::exception {
 
 };
 
+/* An array that acts like a boost::array, but is backed by the memory
+   of a Numpy array.  Provides nice C++ interface to a Numpy array
+   without any copying of the data.
+   
+   It may be constructed one of two ways:
+
+     1) With an existing Numpy array.  The boost::array will then
+        have the data, dimensions and strides of the Numpy array.
+
+     2) With a list of dimensions, in which case a new contiguous
+        Numpy array will be created and the new boost::array will
+        point to it.
+        
+   */
 template<class T, int NDims>
 class numpy_boost : public boost::multi_array_ref<T, NDims>
 {
@@ -114,22 +128,53 @@ private:
   PyArrayObject* array;
 
   void init_from_array(PyArrayObject* a) {
+    /* Upon calling init_from_array, a should already have been
+       incref'd for ownership by this object. */
+
+    /* Store a reference to the Numpy array so we can DECREF it in the
+       destructor. */
     array = a;
+
+    /* Point the boost::array at the Numpy array data.
+
+       We don't need to worry about free'ing this pointer, because it
+       will always point to memory allocated as part of the data of a
+       Numpy array.  That memory is managed by Python reference
+       counting. */
     super::base_ = (TPtr)PyArray_DATA(a);
 
-    // It would seem like we would want to choose C or Fortran
-    // ordering here based on the flags in the Numpy array.  However,
-    // those flags are purely informational, the actually information
-    // about storage order is recorded in the strides.
+    /* Set the storage order.
+       
+       It would seem like we would want to choose C or Fortran
+       ordering here based on the flags in the Numpy array.  However,
+       those flags are purely informational, the actually information
+       about storage order is recorded in the strides. */
     super::storage_ = boost::c_storage_order();
 
+    /* Copy the dimensions from the Numpy array to the boost::array. */
     boost::detail::multi_array::copy_n(PyArray_DIMS(a), NDims, super::extent_list_.begin());
+
+    /* Copy the strides from the Numpy array to the boost::array.
+
+       Numpy strides are in bytes.  boost::array strides are in
+       elements, so we need to divide. */
     for (size_t i = 0; i < NDims; ++i) {
       super::stride_list_[i] = PyArray_STRIDE(a, i) / sizeof(T);
     }
+
+    /* index_base_list_ stores the bases of the indices in each
+       dimension.  Since we want C-style and Numpy-style zero-based
+       indexing, just fill it with zeros. */
     std::fill_n(super::index_base_list_.begin(), NDims, 0);
+
+    /* We don't want any additional offsets.  If they exist, Numpy has
+       already handled that for us when calculating the data pointer
+       and strides. */
     super::origin_offset_ = 0;
     super::directional_offset_ = 0;
+
+    /* Calculate the number of elements.  This has nothing to do with
+       memory layout. */
     super::num_elements_ = std::accumulate(super::extent_list_.begin(),
                                            super::extent_list_.end(),
                                            size_type(1),
@@ -137,32 +182,35 @@ private:
   }
 
 public:
+  /* Construct from an existing Numpy array */
   numpy_boost(PyObject* obj) :
-    super(NULL, std::vector<boost::uint32_t>(NDims, 0)),
+    super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
     PyArrayObject* a;
 
-    a = (PyArrayObject*)PyArray_FromObject(obj, detail::numpy_type_map<T>::typenum, NDims, NDims);
+    a = (PyArrayObject*)PyArray_FromObject(
+        obj, detail::numpy_type_map<T>::typenum, NDims, NDims);
     if (a == NULL) {
-      // TODO: Extract Python exception
-      throw numpy_boost_exception();
+      throw python_exception();
     }
 
     init_from_array(a);
   }
 
+  /* Copy constructor */
   numpy_boost(const self_type &other) :
-    super(NULL, std::vector<boost::uint32_t>(NDims, 0)),
+    super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
     Py_INCREF(other.array);
     init_from_array(other.array);
   }
 
+  /* Construct a new array based on the given dimensions */
   template<class ExtentsList>
   explicit numpy_boost(const ExtentsList& extents) :
-    super(NULL, std::vector<boost::uint32_t>(NDims, 0)),
+    super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
     npy_intp shape[NDims];
@@ -170,28 +218,32 @@ public:
 
     boost::detail::multi_array::copy_n(extents, NDims, shape);
 
-    a = (PyArrayObject*)PyArray_SimpleNew(NDims, shape, detail::numpy_type_map<T>::typenum);
+    a = (PyArrayObject*)PyArray_SimpleNew(
+        NDims, shape, detail::numpy_type_map<T>::typenum);
     if (a == NULL) {
-      // TODO: Extract Python exception
-      throw numpy_boost_exception();
+      throw python_exception();
     }
 
     init_from_array(a);
   }
 
+  /* Destructor */
   ~numpy_boost() {
+    /* Dereference the numpy array. */
     Py_DECREF(array);
   }
 
+  /* Assignment operator */
   void operator=(const self_type &other) {
     Py_INCREF(other.array);
     Py_DECREF(array);
     init_from_array(other.array);
   }
 
+  /* Return the underlying Numpy array object.  [Borrowed
+     reference] */
   PyObject*
   py_ptr() {
-    Py_INCREF(array);
     return (PyObject*)array;
   }
 };

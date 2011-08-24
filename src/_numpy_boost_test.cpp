@@ -40,8 +40,10 @@ test(PyObject* self, PyObject* args, PyObject* kwds) {
     }
 
     // Return the Numpy array back to Python.
-    return array2.py_ptr();
-  } catch (const numpy_boost_exception& e) {
+    PyObject* array2_obj = array2.py_ptr();
+    Py_INCREF(array2_obj);
+    return array2_obj;
+  } catch (const python_exception& e) {
     return NULL;
   }
 }
