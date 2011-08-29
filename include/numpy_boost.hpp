@@ -119,15 +119,15 @@ template<class T, int NDims>
 class numpy_boost : public boost::multi_array_ref<T, NDims>
 {
 public:
-  typedef numpy_boost<T, NDims> self_type;
+  typedef numpy_boost<T, NDims>            self_type;
   typedef boost::multi_array_ref<T, NDims> super;
-  typedef typename super::size_type size_type;
-  typedef T* TPtr;
+  typedef typename super::size_type        size_type;
+  typedef T*                               TPtr;
 
 private:
   PyArrayObject* array;
 
-  void init_from_array(PyArrayObject* a) {
+  void init_from_array(PyArrayObject* a) throw() {
     /* Upon calling init_from_array, a should already have been
        incref'd for ownership by this object. */
 
