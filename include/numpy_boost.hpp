@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2008, Michael Droettboom
+Copyright (c) 2012, Michael Droettboom
 All rights reserved.
 
 Licensed under the BSD license.
@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numpy/arrayobject.h>
 #include <boost/multi_array.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/python.hpp>
 #include <complex>
 #include <algorithm>
 
@@ -101,20 +102,20 @@ class python_exception : public std::exception {
 
 };
 
-/* An array that acts like a boost::array, but is backed by the memory
-   of a Numpy array.  Provides nice C++ interface to a Numpy array
-   without any copying of the data.
-   
+/* An array that acts like a boost::multi_array, but is backed by the
+   memory of a Numpy array.  Provides nice C++ interface to a Numpy
+   array without any copying of the data.
+
    It may be constructed one of two ways:
 
-     1) With an existing Numpy array.  The boost::array will then
-        have the data, dimensions and strides of the Numpy array.
+     1) With an existing Numpy array.  The boost::multi_array will
+        then have the data, dimensions and strides of the Numpy array.
 
      2) With a list of dimensions, in which case a new contiguous
         Numpy array will be created and the new boost::array will
         point to it.
-        
-   */
+
+ */
 template<class T, int NDims>
 class numpy_boost : public boost::multi_array_ref<T, NDims>
 {
@@ -144,7 +145,7 @@ private:
     super::base_ = (TPtr)PyArray_DATA(a);
 
     /* Set the storage order.
-       
+
        It would seem like we would want to choose C or Fortran
        ordering here based on the flags in the Numpy array.  However,
        those flags are purely informational, the actually information
@@ -183,7 +184,7 @@ private:
 
 public:
   /* Construct from an existing Numpy array */
-  numpy_boost(PyObject* obj) throw (python_exception) :
+  numpy_boost(PyObject* obj) throw () :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
@@ -192,7 +193,7 @@ public:
     a = (PyArrayObject*)PyArray_FromObject(
         obj, detail::numpy_type_map<T>::typenum, NDims, NDims);
     if (a == NULL) {
-      throw python_exception();
+      throw boost::python::error_already_set();
     }
 
     init_from_array(a);
@@ -209,7 +210,7 @@ public:
 
   /* Construct a new array based on the given dimensions */
   template<class ExtentsList>
-  explicit numpy_boost(const ExtentsList& extents) throw (python_exception) :
+  explicit numpy_boost(const ExtentsList& extents) throw () :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
@@ -221,7 +222,7 @@ public:
     a = (PyArrayObject*)PyArray_SimpleNew(
         NDims, shape, detail::numpy_type_map<T>::typenum);
     if (a == NULL) {
-      throw python_exception();
+      throw boost::python::error_already_set();
     }
 
     init_from_array(a);
@@ -243,7 +244,7 @@ public:
   /* Return the underlying Numpy array object.  [Borrowed
      reference] */
   PyObject*
-  py_ptr() throw() {
+  py_ptr() const throw() {
     return (PyObject*)array;
   }
 };
