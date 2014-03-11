@@ -184,7 +184,7 @@ private:
 
 public:
   /* Construct from an existing Numpy array */
-  numpy_boost(PyObject* obj) throw () :
+  numpy_boost(PyObject* obj) :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
@@ -210,7 +210,7 @@ public:
 
   /* Construct a new array based on the given dimensions */
   template<class ExtentsList>
-  explicit numpy_boost(const ExtentsList& extents) throw () :
+  explicit numpy_boost(const ExtentsList& extents) :
     super(NULL, std::vector<typename super::index>(NDims, 0)),
     array(NULL)
   {
