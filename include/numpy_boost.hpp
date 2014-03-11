@@ -36,11 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __NUMPY_BOOST_HPP__
 #define __NUMPY_BOOST_HPP__
 
-#include <Python.h>
+#include <boost/python.hpp>
 #include <numpy/arrayobject.h>
 #include <boost/multi_array.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/python.hpp>
 #include <complex>
 #include <algorithm>
 
