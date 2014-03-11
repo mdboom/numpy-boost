@@ -191,7 +191,7 @@ public:
     PyArrayObject* a;
 
     a = (PyArrayObject*)PyArray_FromObject(
-        obj, detail::numpy_type_map<T>::typenum, NDims, NDims);
+        obj, ::detail::numpy_type_map<T>::typenum, NDims, NDims);
     if (a == NULL) {
       throw boost::python::error_already_set();
     }
@@ -220,7 +220,7 @@ public:
     boost::detail::multi_array::copy_n(extents, NDims, shape);
 
     a = (PyArrayObject*)PyArray_SimpleNew(
-        NDims, shape, detail::numpy_type_map<T>::typenum);
+        NDims, shape, ::detail::numpy_type_map<T>::typenum);
     if (a == NULL) {
       throw boost::python::error_already_set();
     }
