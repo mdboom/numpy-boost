@@ -73,7 +73,7 @@ struct numpy_boost_from_python
     PyArrayObject* a;
 
     a = (PyArrayObject*)PyArray_FromObject(
-        obj_ptr, ::detail::numpy_type_map<T>::typenum, NDims, NDims);
+        obj_ptr, ::detail::numpy_type_map<T>(), NDims, NDims);
     if (a == NULL) {
       return 0;
     }
